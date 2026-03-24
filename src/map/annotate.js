@@ -1,15 +1,19 @@
 // eslint-disable-next-line no-unused-vars
 import * as geojson from "geojson";
 import L from "leaflet";
-import { area, length } from "../utils/measure";
+import {
+  area,
+  lineLengthFromMeters,
+  length,
+  lineLengthFromLatLng,
+} from "../utils/measure";
 import { g } from "./globals";
+import "leaflet-measure-path";
+import "leaflet-measure-path/leaflet-measure-path.css";
 
 export const annotationsGroup = L.layerGroup([]);
 /** @type {[string | undefined, string | undefined]} **/
-const prevTextColor = [
-  undefined,
-  undefined,
-];
+const prevTextColor = [undefined, undefined];
 
 export function initAnnotator() {
   const map = g().map;
@@ -52,14 +56,61 @@ export function initAnnotator() {
     drawCircleMarker: false,
   });
 
+  const liveTooltip = L.tooltip({
+    permanent: true,
+    direction: "top",
+    offset: [0, 2],
+    className: "line-total-tooltip",
+  });
+
+  map.pm.setGlobalOptions({ snappable: false });
+
+  map.on("pm:drawstart", ({ shape, workingLayer: layer }) => {
+    layer.showMeasurements({
+      formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
+    });
+
+    if (shape == "Line") {
+      const updateLiveTooltip = (e) => {
+        const pts = layer.getLatLngs();
+        if (pts.length === 0) return;
+        const lastPoint = pts[pts.length - 1];
+        const completedDist = length(layer);
+        const stretchyDist = lineLengthFromLatLng(lastPoint, e.latlng);
+        const totalRunningDist = completedDist + stretchyDist;
+
+        liveTooltip
+          .setLatLng(e.latlng)
+          .setContent(`${Math.round(totalRunningDist)} m`)
+          .addTo(map);
+      };
+
+      map.on("mousemove", updateLiveTooltip);
+
+      map.once("pm:drawend", () => {
+        map.off("mousemove", updateLiveTooltip);
+        liveTooltip.remove();
+      });
+    }
+
+    layer.on("pm:vertexadded", () => {
+      layer.updateMeasurements();
+    });
+  });
+
   map.on("pm:create", ({ shape, layer }) => {
     console.log(shape);
     if (layer instanceof L.Path) {
       layer.bindPopup(
-        document.getElementById("annotation-popup-path-template").innerHTML
+        document.getElementById("annotation-popup-path-template").innerHTML,
       );
 
-      layer.on("popupopen", e => {
+      layer.showMeasurements({
+        formatDistance: (d) =>
+          Math.round(lineLengthFromMeters(d, layer)) + " m",
+      });
+
+      layer.on("popupopen", (e) => {
         const ele = e.popup
           .getElement()
           .querySelector(".leaflet-popup-content");
@@ -118,7 +169,7 @@ export function initAnnotator() {
       });
     } else if (layer instanceof L.Marker && shape == "Text") {
       layer.bindPopup(
-        document.getElementById("annotation-popup-text-template").innerHTML
+        document.getElementById("annotation-popup-text-template").innerHTML,
       );
       layer.pm.getElement().style.backgroundColor = prevTextColor[0] ?? "";
       layer.pm.getElement().style.color = prevTextColor[1] ?? "";
@@ -133,15 +184,14 @@ export function initAnnotator() {
         return hexColor;
       };
 
-      layer.on("popupopen", e => {
+      layer.on("popupopen", (e) => {
         const ele = e.popup
           .getElement()
           .querySelector(".leaflet-popup-content");
         console.log(layer.pm.getElement());
 
         /** @type {HTMLInputElement} **/
-        const backgroundColor =
-          ele.querySelector("#background");
+        const backgroundColor = ele.querySelector("#background");
         backgroundColor.value =
           rgb2hex(layer.pm.getElement().style.backgroundColor) ??
           backgroundColor.value;
@@ -149,13 +199,11 @@ export function initAnnotator() {
           layer.pm.getElement().style.backgroundColor = backgroundColor.value;
           prevTextColor[0] = backgroundColor.value;
         });
-        ele
-          .querySelector("#background-reset")
-          .addEventListener("click", () => {
-            backgroundColor.value = "";
-            layer.pm.getElement().style.backgroundColor = "";
-            prevTextColor[0] = undefined;
-          });
+        ele.querySelector("#background-reset").addEventListener("click", () => {
+          backgroundColor.value = "";
+          layer.pm.getElement().style.backgroundColor = "";
+          prevTextColor[0] = undefined;
+        });
 
         /** @type {HTMLInputElement} **/
         const textColor = ele.querySelector("#text");
@@ -192,7 +240,7 @@ export function initAnnotator() {
 function generateGeoJson() {
   const features = annotationsGroup
     .getLayers()
-    .map(layer => {
+    .map((layer) => {
       let res;
       if (layer instanceof L.Marker) {
         /** @type {AnnotatorFeature<geojson.Point>} */
@@ -236,7 +284,7 @@ function generateGeoJson() {
       }
       return res;
     })
-    .filter(a => a !== undefined);
+    .filter((a) => a !== undefined);
   return {
     type: "FeatureCollection",
     features: features,
@@ -249,81 +297,72 @@ function loadGeoJson(fc) {
     switch (feature.properties.shape) {
       case "text": {
         const layer = L.marker(
-          L.GeoJSON.coordsToLatLng(
-            (feature).geometry
-              .coordinates
-          ),
+          L.GeoJSON.coordsToLatLng(feature.geometry.coordinates),
           {
             text: feature.properties.text,
             textMarker: true,
-          }
+          },
         ).addTo(annotationsGroup);
         layer.getElement().style.backgroundColor =
           feature.properties.fillColor ?? "";
         layer.getElement().style.color = feature.properties.strokeColor ?? "";
-        g().map.fire("pm:create", {shape: "Text", layer});
+        g().map.fire("pm:create", { shape: "Text", layer });
         break;
       }
       case "marker": {
         const layer = L.marker(
-          L.GeoJSON.coordsToLatLng(
-            (feature).geometry
-              .coordinates
-          ),
+          L.GeoJSON.coordsToLatLng(feature.geometry.coordinates),
           {
             textMarker: false,
-          }
+          },
         ).addTo(annotationsGroup);
-        g().map.fire("pm:create", {shape: "Marker", layer});
+        g().map.fire("pm:create", { shape: "Marker", layer });
         break;
       }
       case "rect": {
         /** @type {L.Polygon} */
-        const layer = L.GeoJSON.geometryToLayer(feature).addTo(
-          annotationsGroup
-        );
+        const layer =
+          L.GeoJSON.geometryToLayer(feature).addTo(annotationsGroup);
         layer.setStyle({
           fillColor: feature.properties.fillColor,
-          color: feature.properties.strokeColor
-        })
-        g().map.fire("pm:create", {shape: "Polygon", layer});
+          color: feature.properties.strokeColor,
+        });
+        g().map.fire("pm:create", { shape: "Polygon", layer });
         break;
       }
       case "poly": {
         /** @type {L.Polygon} */
-        const layer = L.GeoJSON.geometryToLayer(feature).addTo(
-          annotationsGroup
-        );
+        const layer =
+          L.GeoJSON.geometryToLayer(feature).addTo(annotationsGroup);
         layer.setStyle({
           fillColor: feature.properties.fillColor,
-          color: feature.properties.strokeColor
-        })
-        g().map.fire("pm:create", {shape: "Polygon", layer});
+          color: feature.properties.strokeColor,
+        });
+        g().map.fire("pm:create", { shape: "Polygon", layer });
         break;
       }
       case "line": {
         /** @type {L.Polyline} */
-        const layer = L.GeoJSON.geometryToLayer(feature).addTo(
-          annotationsGroup
-        );
+        const layer =
+          L.GeoJSON.geometryToLayer(feature).addTo(annotationsGroup);
         layer.setStyle({
-          color: feature.properties.strokeColor
-        })
-        g().map.fire("pm:create", {shape: "Line", layer});
+          color: feature.properties.strokeColor,
+        });
+        g().map.fire("pm:create", { shape: "Line", layer });
         break;
       }
       case "circle": {
         const layer = L.circle(
-          L.GeoJSON.coordsToLatLng((feature).geometry.coordinates),
+          L.GeoJSON.coordsToLatLng(feature.geometry.coordinates),
           {
             radius: feature.properties.radius,
-          }
+          },
         ).addTo(annotationsGroup);
         layer.setStyle({
           fillColor: feature.properties.fillColor,
-          color: feature.properties.strokeColor
-        })
-        g().map.fire("pm:create", {shape: "Circle", layer});
+          color: feature.properties.strokeColor,
+        });
+        g().map.fire("pm:create", { shape: "Circle", layer });
         break;
       }
     }
@@ -353,9 +392,7 @@ function importAnnotations() {
     const reader = new FileReader();
     reader.onload = function () {
       clear("Do you want to clear all polygons?");
-      const fc = JSON.parse(
-        reader.result?.toString() ?? ""
-      );
+      const fc = JSON.parse(reader.result?.toString() ?? "");
       loadGeoJson(fc);
       importer.remove();
     };

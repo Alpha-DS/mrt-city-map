@@ -15,8 +15,8 @@
     "@fortawesome/fontawesome-free": "7.2.0",
     "@geoman-io/leaflet-geoman-free": "2.19.2",
     "@types/fs-extra": "11.0.4",
-    "@types/jquery": "4.0.0",
     "@types/geojson": "^7946.0.13",
+    "@types/jquery": "4.0.0",
     "@types/leaflet": "1.9.21",
     "@types/node": "24.12.0",
     "autoprefixer": "10.4.27",
@@ -38,5 +38,8 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "leaflet-measure-path": "^1.5.0"
   }
 }

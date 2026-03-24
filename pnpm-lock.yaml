@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      leaflet-measure-path:
+        specifier: ^1.5.0
+        version: 1.5.0
     devDependencies:
       '@eslint/js':
         specifier: 10.0.1
@@ -1019,6 +1023,9 @@ packages:
 
   leaflet-easybutton@2.4.0:
     resolution: {integrity: sha512-O+qsQq4zTF6ds8VClnytobTH/MKalctlPpiA8L+bNKHP14J3lgJpvEd/jSpq9mHTI6qOzRAvbQX6wS6qNwThvg==}
+
+  leaflet-measure-path@1.5.0:
+    resolution: {integrity: sha512-veLRhd+TlJtPDLgCqN0i0SsYPMGCCMNchhDyLhn4TNdiTaWf68iTuXnts5UdiDDmUuVefc6pP9rHm+cKvOx5rQ==}
 
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
@@ -2557,6 +2564,8 @@ snapshots:
   leaflet-easybutton@2.4.0:
     dependencies:
       leaflet: 1.9.4
+
+  leaflet-measure-path@1.5.0: {}
 
   leaflet@1.9.4: {}
 
