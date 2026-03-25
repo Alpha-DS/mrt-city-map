@@ -59,9 +59,9 @@ function polyPerimeter(l) {
   return perimeter;
 }
 
-function circleCircumference(l) {
+function circleRadius(l) {
   const radius = l.getRadius() * 64;
-  return 2 * Math.PI * radius;
+  return radius;
 }
 
 export function area(l) {
@@ -80,7 +80,7 @@ export function length(l) {
   } else if (l instanceof L.Polyline) {
     return lineLength(l);
   } else if (l instanceof L.Circle) {
-    return circleCircumference(l);
+    return circleRadius(l);
   } else {
     return 0;
   }
@@ -109,4 +109,12 @@ export function lineLengthFromLatLng(ll1, ll2) {
   const p2 = worldcoord([ll2.lat, ll2.lng]);
 
   return Math.sqrt(Math.pow(p1[0] - p2[0], 2) + Math.pow(p1[1] - p2[1], 2));
+}
+
+// Used for formatting the area string for circles in annotations
+export function formatCircleArea(layer) {
+  const radius = circleRadius(layer);
+  const calculatedArea = area(layer);
+
+  return `r: ${Math.round(radius)} m<br>${Math.round(calculatedArea)} m&sup2;`;
 }

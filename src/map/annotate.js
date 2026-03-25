@@ -6,6 +6,7 @@ import {
   lineLengthFromMeters,
   length,
   lineLengthFromLatLng,
+  formatCircleArea,
 } from "../utils/measure";
 import { g } from "./globals";
 import "leaflet-measure-path";
@@ -71,11 +72,12 @@ export function initAnnotator() {
   });
 
   map.on("pm:drawstart", ({ shape, workingLayer: layer }) => {
-    if (shape === "Line") {
+    if (shape === "Line" || shape === "Polygon") {
       // Hiding city markers while drawing will improve performance for some reason
       markersCanvas._container?.style.setProperty("visibility", "hidden");
       layer.showMeasurements({
-        formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
+        formatDistance: (d) =>
+          Math.round(lineLengthFromMeters(d, layer)) + " m",
       });
       const updateLiveTooltip = (e) => {
         const pts = layer.getLatLngs();
@@ -94,10 +96,7 @@ export function initAnnotator() {
       map.on("mousemove", updateLiveTooltip);
 
       map.once("pm:drawend", () => {
-        markersCanvas._container?.style.setProperty(
-          "visibility",
-          "visible",
-        );
+        markersCanvas._container?.style.setProperty("visibility", "visible");
         map.off("mousemove", updateLiveTooltip);
         liveTooltip.remove();
       });
@@ -107,9 +106,33 @@ export function initAnnotator() {
           layer.showMeasurements({
             formatDistance: (d) =>
               Math.round(lineLengthFromMeters(d, layer)) + " m",
-            formatArea: () => Math.round(area(layer)) + " m²",
+            formatArea: () => Math.round(area(layer)) + " m&sup2;",
           });
         }
+      });
+    } else if (shape === "Circle") {
+      const updateCircleTooltip = (e) => {
+        const radius = length(layer);
+
+        liveTooltip
+          .setLatLng(e.latlng)
+          .setContent(`${Math.round(radius)} m`)
+          .addTo(map);
+      };
+
+      map.on("mousemove", updateCircleTooltip);
+
+      layer.on("pm:change", () => {
+        if (!layer._measurementLayer) {
+          layer.showMeasurements({
+            formatArea: () => Math.round(area(layer)) + " m&sup2;",
+          });
+        }
+      });
+
+      map.once("pm:drawend", () => {
+        map.off("mousemove", updateCircleTooltip);
+        liveTooltip.remove();
       });
     }
 
@@ -127,10 +150,15 @@ export function initAnnotator() {
         document.getElementById("annotation-popup-path-template").innerHTML,
       );
 
+      const isCircle = shape === "Circle" || layer instanceof L.Circle;
+
       layer.showMeasurements({
-        formatDistance: (d) =>
-          Math.round(lineLengthFromMeters(d, layer)) + " m",
-        formatArea: () => Math.round(area(layer)) + " m²",
+        formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
+        formatArea: () => {
+          return isCircle
+            ? formatCircleArea(layer)
+            : Math.round(area(layer)) + " m&sup2;";
+        },
       });
 
       layer.on("popupopen", (e) => {
