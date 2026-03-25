@@ -79,27 +79,34 @@ export function initAnnotator() {
         formatDistance: (d) =>
           Math.round(lineLengthFromMeters(d, layer)) + " m",
       });
-      const updateLiveTooltip = (e) => {
-        const pts = layer.getLatLngs();
-        if (pts.length === 0) return;
-        const lastPoint = pts[pts.length - 1];
-        const completedDist = length(layer);
-        const stretchyDist = lineLengthFromLatLng(lastPoint, e.latlng);
-        const totalRunningDist = completedDist + stretchyDist;
 
-        liveTooltip
-          .setLatLng(e.latlng)
-          .setContent(`${Math.round(totalRunningDist)} m`)
-          .addTo(map);
-      };
+      if (!L.Browser.mobile) {
+        const updateLiveTooltip = (e) => {
+          const pts = layer.getLatLngs();
+          if (pts.length === 0) return;
+          const lastPoint = pts[pts.length - 1];
+          const completedDist = length(layer);
+          const stretchyDist = lineLengthFromLatLng(lastPoint, e.latlng);
+          const totalRunningDist = completedDist + stretchyDist;
 
-      map.on("mousemove", updateLiveTooltip);
+          liveTooltip
+            .setLatLng(e.latlng)
+            .setContent(`${Math.round(totalRunningDist)} m`)
+            .addTo(map);
+        };
 
-      map.once("pm:drawend", () => {
-        markersCanvas._container?.style.setProperty("visibility", "visible");
-        map.off("mousemove", updateLiveTooltip);
-        liveTooltip.remove();
-      });
+        map.on("mousemove", updateLiveTooltip);
+
+        map.once("pm:drawend", () => {
+          markersCanvas._container?.style.setProperty("visibility", "visible");
+          map.off("mousemove", updateLiveTooltip);
+          liveTooltip.remove();
+        });
+      } else {
+        map.once("pm:drawend", () => {
+          markersCanvas._container?.style.setProperty("visibility", "visible");
+        });
+      }
     } else if (shape === "Rectangle") {
       layer.on("pm:change", () => {
         if (!layer._measurementLayer) {
