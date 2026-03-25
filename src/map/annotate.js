@@ -10,6 +10,9 @@ import {
 import { g } from "./globals";
 import "leaflet-measure-path";
 import "leaflet-measure-path/leaflet-measure-path.css";
+import { markersCanvas } from "../map.js";
+
+const drawingRenderer = L.svg();
 
 export const annotationsGroup = L.layerGroup([]);
 /** @type {[string | undefined, string | undefined]} **/
@@ -20,6 +23,10 @@ export function initAnnotator() {
   annotationsGroup.addTo(map);
   map.pm.setGlobalOptions({
     layerGroup: annotationsGroup,
+    // SVG drawing is smoother than canvas
+    templineStyle: { renderer: drawingRenderer },
+    hintlineStyle: { renderer: drawingRenderer },
+    pathOptions: { renderer: drawingRenderer },
   });
 
   map.pm.Toolbar.createCustomControl({
@@ -63,14 +70,13 @@ export function initAnnotator() {
     className: "line-total-tooltip",
   });
 
-  map.pm.setGlobalOptions({ snappable: false });
-
   map.on("pm:drawstart", ({ shape, workingLayer: layer }) => {
-    layer.showMeasurements({
-      formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
-    });
-
-    if (shape == "Line") {
+    if (shape === "Line") {
+      // Hiding city markers while drawing will improve performance for some reason
+      markersCanvas._container?.style.setProperty("visibility", "hidden");
+      layer.showMeasurements({
+        formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
+      });
       const updateLiveTooltip = (e) => {
         const pts = layer.getLatLngs();
         if (pts.length === 0) return;
@@ -88,6 +94,10 @@ export function initAnnotator() {
       map.on("mousemove", updateLiveTooltip);
 
       map.once("pm:drawend", () => {
+        markersCanvas._container?.style.setProperty(
+          "visibility",
+          "visible",
+        );
         map.off("mousemove", updateLiveTooltip);
         liveTooltip.remove();
       });
@@ -100,6 +110,7 @@ export function initAnnotator() {
 
   map.on("pm:create", ({ shape, layer }) => {
     console.log(shape);
+    markersCanvas._container?.style.setProperty("visibility", "visible");
     if (layer instanceof L.Path) {
       layer.bindPopup(
         document.getElementById("annotation-popup-path-template").innerHTML,
@@ -121,7 +132,7 @@ export function initAnnotator() {
           Math.round(area(layer) * 1000) / 1000
         ).toString();
 
-        if (shape == "Line") {
+        if (shape === "Line") {
           ele.querySelector("#fill-container")?.remove();
         } else {
           /** @type {HTMLInputElement} **/

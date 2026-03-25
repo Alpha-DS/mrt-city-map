@@ -2,6 +2,7 @@ import $ from "jquery";
 import L from "leaflet";
 import { mapcoord } from "../utils/coord";
 import { CityMap, g, gb, gcm } from "./globals";
+import { markersCanvas } from "../map";
 export async function initMapCities() {
   const res = await fetch(
     "https://script.google.com/macros/s/AKfycbwde4vwt0l4_-qOFK_gL2KbVAdy7iag3BID8NWu2DQ1566kJlqyAS1Y/exec?spreadsheetId=1JSmJtYkYrEx6Am5drhSet17qwJzOKDI7tE7FxPx4YNI&sheetName=New%20World",
@@ -105,8 +106,10 @@ function mapTowns(towns) {
       //create marker and add it to array
       cityMarkers.get(town["Town Rank"]).push(
         L.circleMarker(coords, {
+          renderer: markersCanvas,
           color: rankColors[town["Town Rank"]],
           radius: 7,
+          pmIgnore: true,
         }).bindPopup(
           `Name: ${town.Name}<br>Mayor: ${town.Mayor}<br>Deputy Mayor: ${town["Deputy Mayor"]}<br>Rank: ${town["Town Rank"]}<br><a href="https://mrtrapidroute.com?from=Current+Location&to=${encodeURIComponent(town.Name)}" target="_blank">Navigate to here with RapidRoute</a>`,
         ),
