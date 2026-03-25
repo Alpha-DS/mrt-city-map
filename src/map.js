@@ -53,6 +53,6 @@ export function initMap() {
     })
     .addTo(map);
   map.createPane("markersPane");
-  map.getPane("markersPane").style.zIndex = 450;
+  map.getPane("markersPane").style.zIndex = 350;
   return map;
 }

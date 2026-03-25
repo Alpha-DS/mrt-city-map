@@ -101,7 +101,18 @@ export function initAnnotator() {
         map.off("mousemove", updateLiveTooltip);
         liveTooltip.remove();
       });
+    } else if (shape === "Rectangle") {
+      layer.on("pm:change", () => {
+        if (!layer._measurementLayer) {
+          layer.showMeasurements({
+            formatDistance: (d) =>
+              Math.round(lineLengthFromMeters(d, layer)) + " m",
+            formatArea: () => Math.round(area(layer)) + " m²",
+          });
+        }
+      });
     }
+
 
     layer.on("pm:vertexadded", () => {
       layer.updateMeasurements();
@@ -119,6 +130,7 @@ export function initAnnotator() {
       layer.showMeasurements({
         formatDistance: (d) =>
           Math.round(lineLengthFromMeters(d, layer)) + " m",
+        formatArea: () => Math.round(area(layer)) + " m²",
       });
 
       layer.on("popupopen", (e) => {

@@ -32,7 +32,7 @@ export function mapLayers() {
     return;
   } else {
     map.removeLayer(searchLayer);
-    console.log(cityLayers.entries());
+    //console.log(cityLayers.entries());
     map.addLayer(cityLayers.get("Community"));
     map.addLayer(cityLayers.get("Premier"));
     map.addLayer(cityLayers.get("Governor"));

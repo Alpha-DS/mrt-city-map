@@ -2,7 +2,7 @@ import L from "leaflet";
 import { worldcoord } from "./coord";
 
 function polyArea(l) {
-  console.log(l.getLatLngs());
+  //console.log(l.getLatLngs());
   let area = 0;
   for (let s = 0; s < l.getLatLngs().length; s++) {
     let polyArea = 0;
@@ -43,7 +43,7 @@ function lineLength(l) {
 }
 
 function polyPerimeter(l) {
-  console.log(l.getLatLngs());
+  //console.log(l.getLatLngs());
   let perimeter = 0;
   for (let s = 0; s < l.getLatLngs().length; s++) {
     const latlngs = l.getLatLngs()[s].map((ll) => worldcoord([ll.lat, ll.lng]));
@@ -90,9 +90,9 @@ export function length(l) {
 export function lineLengthFromMeters(d, layer) {
   const latlngs = layer.getLatLngs();
   const pts = Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
-  for (let i = 0; i < pts.length - 1; i++) {
+  for (let i = 0; i < pts.length; i++) {
     const p1 = pts[i];
-    const p2 = pts[i + 1];
+    const p2 = pts[(i + 1) % pts.length];
     const leafletDist = p1.distanceTo(p2);
     if (Math.abs(leafletDist - d) < 0.1) {
       const w1 = worldcoord([p1.lat, p1.lng]);
