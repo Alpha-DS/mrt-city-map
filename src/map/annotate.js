@@ -3,10 +3,9 @@ import * as geojson from "geojson";
 import L from "leaflet";
 import {
   area,
-  lineLengthFromMeters,
   length,
   lineLengthFromLatLng,
-  formatCircleArea,
+  showMeasurements,
 } from "../utils/measure";
 import { g } from "./globals";
 import "leaflet-measure-path";
@@ -29,6 +28,12 @@ export function initAnnotator() {
     hintlineStyle: { renderer: drawingRenderer },
     pathOptions: { renderer: drawingRenderer },
   });
+
+  map.pm.enableDraw("Polygon", {
+    allowSelfIntersection: false,
+  });
+  map.pm.disableDraw();
+  g().annotationList._container.style.display = "none";
 
   map.pm.Toolbar.createCustomControl({
     name: "clearall",
@@ -59,9 +64,35 @@ export function initAnnotator() {
     onClick: importAnnotations,
   });
 
+  map.pm.Toolbar.createCustomControl({
+    name: "toggleAnnotationList",
+    title: "Toggle Annotation List",
+    block: "custom",
+    className: "fas fa-list icon",
+    toggle: false,
+    onClick: () => {
+      const container = g().annotationList._container;
+      const isVisible = container.style.display !== "none";
+      container.style.display = isVisible ? "none" : "";
+    },
+  });
+
   map.pm.addControls({
     position: "bottomleft",
     drawCircleMarker: false,
+  });
+
+  const corner = document.querySelector(".leaflet-bottom.leaflet-left");
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText =
+    "display: flex; flex-direction: column; align-items: flex-start;";
+  corner
+    .querySelectorAll(".leaflet-pm-toolbar")
+    .forEach((t) => wrapper.appendChild(t));
+  corner.prepend(wrapper);
+
+  annotationsGroup.on("layerremove", () => {
+    g().annotationList.refresh();
   });
 
   const liveTooltip = L.tooltip({
@@ -72,13 +103,12 @@ export function initAnnotator() {
   });
 
   map.on("pm:drawstart", ({ shape, workingLayer: layer }) => {
+    annotationsGroup.getLayers().forEach((l) => l.pm.disable());
+    g().annotationList.editingLayer = null;
     if (shape === "Line" || shape === "Polygon") {
       // Hiding city markers while drawing will improve performance for some reason
       markersCanvas._container?.style.setProperty("visibility", "hidden");
-      layer.showMeasurements({
-        formatDistance: (d) =>
-          Math.round(lineLengthFromMeters(d, layer)) + " m",
-      });
+      showMeasurements(layer);
 
       if (!L.Browser.mobile) {
         const updateLiveTooltip = (e) => {
@@ -110,11 +140,7 @@ export function initAnnotator() {
     } else if (shape === "Rectangle") {
       layer.on("pm:change", () => {
         if (!layer._measurementLayer) {
-          layer.showMeasurements({
-            formatDistance: (d) =>
-              Math.round(lineLengthFromMeters(d, layer)) + " m",
-            formatArea: () => Math.round(area(layer)) + " m&sup2;",
-          });
+          showMeasurements(layer);
         }
       });
     } else if (shape === "Circle") {
@@ -131,9 +157,7 @@ export function initAnnotator() {
 
       layer.on("pm:change", () => {
         if (!layer._measurementLayer) {
-          layer.showMeasurements({
-            formatArea: () => Math.round(area(layer)) + " m&sup2;",
-          });
+          showMeasurements(layer);
         }
       });
 
@@ -143,30 +167,26 @@ export function initAnnotator() {
       });
     }
 
-
     layer.on("pm:vertexadded", () => {
       layer.updateMeasurements();
     });
   });
 
   map.on("pm:create", ({ shape, layer }) => {
-    console.log(shape);
+    // console.log(shape);
+    if (!g().map.hasLayer(layer)) return;
     markersCanvas._container?.style.setProperty("visibility", "visible");
+    layer.options.pmShape = shape;
+    layer.options.annotationLabel = `${shape} ${annotationsGroup.getLayers().length}`;
+    g().annotationList.activeTab = shape;
+    g().annotationList.keepTab = true;
+    g().annotationList.refresh();
     if (layer instanceof L.Path) {
       layer.bindPopup(
         document.getElementById("annotation-popup-path-template").innerHTML,
       );
 
-      const isCircle = shape === "Circle" || layer instanceof L.Circle;
-
-      layer.showMeasurements({
-        formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
-        formatArea: () => {
-          return isCircle
-            ? formatCircleArea(layer)
-            : Math.round(area(layer)) + " m&sup2;";
-        },
-      });
+      showMeasurements(layer);
 
       layer.on("popupopen", (e) => {
         const ele = e.popup
@@ -242,6 +262,33 @@ export function initAnnotator() {
         return hexColor;
       };
 
+      const element = layer.pm.getElement();
+      if (!layer.options.textEventsbound) {
+        layer.options.textEventsbound = true;
+        element.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            element.blur();
+          }
+        });
+      }
+
+      layer.on("dblclick", () => {
+        layer.pm.enable();
+        const element = layer.pm.getElement();
+        element.removeAttribute("readonly");
+        element.focus();
+        element.select();
+
+        element.addEventListener(
+          "blur",
+          () => {
+            layer.pm.disable();
+          },
+          { once: true },
+        );
+      });
+
       layer.on("popupopen", (e) => {
         const ele = e.popup
           .getElement()
@@ -278,6 +325,10 @@ export function initAnnotator() {
         });
       });
     }
+  });
+
+  map.on("pm:remove", () => {
+    g().annotationList.refresh();
   });
 }
 

@@ -118,3 +118,13 @@ export function formatCircleArea(layer) {
 
   return `r: ${Math.round(radius)} m<br>${Math.round(calculatedArea)} m&sup2;`;
 }
+
+export function showMeasurements(layer) {
+  layer.showMeasurements({
+    formatDistance: (d) => Math.round(lineLengthFromMeters(d, layer)) + " m",
+    formatArea: () =>
+      layer instanceof L.Circle
+        ? formatCircleArea(layer)
+        : Math.round(area(layer)) + " m&sup2;",
+  });
+}

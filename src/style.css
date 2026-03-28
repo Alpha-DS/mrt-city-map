@@ -187,6 +187,64 @@ body {
     margin-top: -4px !important;
 }
 
+.leaflet-bottom.leaflet-left {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+.annotation-list-control {
+  background: white;
+  resize: both;
+  overflow: auto;
+  min-width: 220px;
+  min-height: 100px;
+  width: 220px;
+}
+
+.annotation-list-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.annotation-list-tabs button {
+  flex: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.annotation-list-tabs button.active {
+  background: #666;
+  color: white;
+}
+
+.annotation-entry button.inactive i {
+  opacity: 0.3;
+}
+
+.annotation-list-content {
+  min-height: 60px;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+}
+
+.annotation-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.annotation-entry span {
+  flex: 1;
+}
+
 /* MOBILE */
 
 @media only screen and (max-width: 1000px) {

@@ -3,12 +3,12 @@
   "description": "A detailed map of the Minecart Rapid Transit server, inspired by OpenStreetMap",
   "icons": [
     {
-      "src": "/media/map512.png",
+      "src": "/map512.png",
       "type": "image/png",
       "sizes": "512x512"
     },
     {
-      "src": "/media/map192.png",
+      "src": "/map192.png",
       "type": "image/png",
       "sizes": "192x192"
     }

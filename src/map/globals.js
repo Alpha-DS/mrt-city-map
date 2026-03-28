@@ -3,6 +3,8 @@ import L from "leaflet";
 import "leaflet-easybutton";
 import { mapLayers } from "./map-cities";
 import { Radius } from "./radius.js";
+import { AnnotationList } from "./annotation-list.js";
+
 export class Globals {
   constructor(map) {
     this.displayTowns = true; //used by certain later scripts to tell certain functions not to do certain things if a search in progress
@@ -11,6 +13,7 @@ export class Globals {
     this.map = map;
     this.buttons = new Buttons(this.map);
     this.logo = new Logo(this.map);
+    this.annotationList = new AnnotationList(this.map);
   }
 }
 export class CityMap {
