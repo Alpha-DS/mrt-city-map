@@ -5,6 +5,7 @@ on:
     workflows: ["Update Warps"]
     types:
       - completed
+  workflow_dispatch: {}
 
 permissions:
   contents: write
